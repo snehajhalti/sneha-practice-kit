@@ -1,0 +1,14 @@
+yum install docker -y
+systemctl start docker
+systemctl enable docker
+docker pull nginx
+docker run -it --name nginx-app -p 8080:80 nginx:latest /bin/bash
+apt update -y
+apt install apache2
+cd /var/www/html/
+echo " This is Ankit" > index.html
+service apache2 start
+ctrl p+q
+docker inspect nginx-app| less
+curl http://172.17.0.2:8080
+just paste the public ip address: 8080 or do curl ip:8080 in terminal -> it will show same output which u changed in index.html
