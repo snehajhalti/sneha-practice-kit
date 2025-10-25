@@ -3,20 +3,18 @@ created using terraform and
 god bless you */
 
 provider "aws" {
-  access_key = "your aws access key here"
-  secret_key = "your aws secret key here"
-  region     = "ap-south-1"
+  region     = "us-east-1"
+  access_key = ""
+  secret_key = ""
 }
 
+resource "aws_instance" "dev-server" {
+  ami           = "ami-07860a2d7eb515d9a"
+  instance_type = "t3.micro"
 
-resource "aws_instance" "ourfirst" {
-  ami           = "ami-0447a12f28fddb066"
-  instance_type = "t2.micro"
-lifecycle {
-  prevent_destroy = true
-  ignore_changes = ["ami",]
+  tags = {
+    Name = "HelloWorld"
   }
-
 }
 /*
 run
