@@ -1,0 +1,116 @@
+GITHUB ACTIONS
+ 
+-> Create a new repository in git hub
+-> write the content in index.html file
+-> Go to aws console and then create iam user, attach policy Administrator Access-> create access key
+-> go to git hub repo's settings then go to secrets and variables-> select actions
+add your access key in AWS_ACCESS_KEY_ID
+add your secret key in AWS_SECRET_ACCESS_KEY
+-> Go to aws console and then create a s3 bucket
+add your bucket name in GitHub-> S3_BUCKET_NAME
+-> go to GitHub select actions then select ./GitHub/workflows
+in main.yml file
+ 
+name: Upload Website
+ 
+on:
+  push:
+    branches:
+    - main
+ 
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v1
+ 
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+ 
+    - name: Deploy static site to S3 bucket
+      run: aws s3 sync . s3://devops445566 --delete
+ 
+->The build will enable automatically under actions
+-> go to s3 bucket and then enable static web hosting
+-> select the objects in s3 bucket and make them public
+-> select index.html and then paste the object url in the website
+ 
+-> go to ecr and then create a registry to store docker images
+-> In ECS create a cluster.
+->in GitHub repo's settings under secrets and variables
+add ecr name in ECR_REPOSITORY
+add ecs name in ECS_CLUSTER_NAME
+-> write a Dockerfile in GitHub repo
+ 
+FROM nginx:alpine
+COPY index.html /usr/share/nginx/html/index.html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+ 
+-> in ./GitHub/workflows
+create a deploy.yml file
+ 
+name: Deploy to ECS
+ 
+on:
+  push:
+    branches:
+      - main
+ 
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+ 
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+ 
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+ 
+    - name: Log in to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+ 
+    - name: Build, tag, and push image to ECR
+      run: |
+        IMAGE_TAG=latest
+        docker build -t ${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG .
+        docker tag ${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG
+        docker push ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG
+ 
+    - name: Upload assets to S3 (optional)
+      run: |
+        aws s3 cp . s3://${{ secrets.S3_BUCKET_NAME }}/ --recursive
+ 
+    - name: Deploy to ECS
+      run: |
+        aws ecs update-service \
+          --cluster ${{ secrets.ECS_CLUSTER_NAME }} \
+          --service ${{ secrets.ECS_SERVICE_NAME }} \
+          --force-new-deployment
+ 
+-> after the successful build the image will be built in ECR
+->go to ECS then create a task definition
+paste the image uri and enable port 80
+->create service and attach the task definition to it
+-> Public ip will be available in running task of a service
+-> paste the ip in browser with port 80
+ 
+using loadbalancer
+-> enable load balancer option in the service
+-> enable port 80 and then create the target group
+-> fetch load balancer link under dns
+-> paste link in browser using port 80
+ 
+ 
+ 
